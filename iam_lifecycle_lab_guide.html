@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Lifecycle Management (Provisioning &amp; Deprovisioning) Lab</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+      color: #111827;
+      background: #f8fafc;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 32px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    }
+    h1, h2, h3 {
+      color: #0f172a;
+      margin-top: 28px;
+    }
+    h1 {
+      font-size: 2rem;
+      border-bottom: 3px solid #2563eb;
+      padding-bottom: 10px;
+      margin-top: 0;
+    }
+    h2 {
+      font-size: 1.4rem;
+      border-left: 5px solid #2563eb;
+      padding-left: 12px;
+    }
+    p, li {
+      font-size: 1rem;
+    }
+    ul {
+      margin-top: 6px;
+    }
+    .step {
+      margin: 26px 0;
+      padding: 18px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+    }
+    .step h3 {
+      margin-top: 0;
+      color: #1d4ed8;
+    }
+    .code {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: Consolas, Monaco, monospace;
+      white-space: pre-wrap;
+    }
+    .note {
+      background: #eff6ff;
+      border-left: 5px solid #2563eb;
+      padding: 12px 14px;
+      border-radius: 8px;
+      margin: 12px 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    figure {
+      margin: 0;
+      background: #fff;
+      border: 1px solid #dbeafe;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    figure img {
+      width: 100%;
+      display: block;
+      height: auto;
+    }
+    figure figcaption {
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      background: #f8fafc;
+    }
+    .footer {
+      margin-top: 32px;
+      padding-top: 18px;
+      border-top: 1px solid #cbd5e1;
+      font-size: 0.95rem;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>User Lifecycle Management (Provisioning &amp; Deprovisioning) Lab</h1>
+
+    <h2>Description</h2>
+    <p>
+      In this project I created a User Lifecycle Management home lab using Oracle VirtualBox, Windows Server 2022,
+      Active Directory, and a Windows 11 client machine. This lab helped me build hands-on experience with core IAM
+      concepts such as domain setup, DNS, organizational units, security groups, user provisioning, RBAC-based access
+      assignments, domain authentication, and user deprovisioning. I also automated onboarding and offboarding tasks
+      using PowerShell scripts and CSV files to simulate how joiner and leaver workflows can be handled in a real-world
+      identity and access management environment.
+    </p>
+
+    <h2>Languages and Utilities Used</h2>
+    <ul>
+      <li>PowerShell</li>
+      <li>Oracle VirtualBox</li>
+      <li>Active Directory Users and Computers</li>
+      <li>Windows Server Manager</li>
+      <li>CSV files for onboarding and offboarding simulation</li>
+    </ul>
+
+    <h2>Environments Used</h2>
+    <ul>
+      <li>Windows Server 2022 Standard Evaluation</li>
+      <li>Windows 11 Pro</li>
+      <li>Oracle VirtualBox</li>
+    </ul>
+
+    <h2>Project Goals</h2>
+    <ul>
+      <li>Build a working Active Directory domain from scratch</li>
+      <li>Create a Windows 11 client and join it to the domain</li>
+      <li>Design organizational units and security groups for role-based access control</li>
+      <li>Automate user provisioning from a CSV file with PowerShell</li>
+      <li>Automate user deprovisioning by disabling accounts, removing group access, and moving accounts to a DisabledUsers OU</li>
+      <li>Document logging output for audit visibility</li>
+    </ul>
+
+    <h2>Lab Architecture</h2>
+    <div class="code">DC01 / DC02 (Windows Server 2022)
+|- Active Directory Domain Services
+|- DNS
+|- OUs and Security Groups
+|- Provisioning &amp; Deprovisioning Scripts
+
+CL01 (Windows 11 Pro)
+|- Joined to lab.local domain
+|- Tested domain logon as provisioned user
+
+PowerShell Automation
+|- new_users.csv  -> Provision-Users.ps1
+|- leavers.csv    -> Leaver-Users.ps1</div>
+
+    <div class="step">
+      <h3>Step 1: Install the Windows Server VM</h3>
+      <p>
+        I created a Windows Server 2022 virtual machine in Oracle VirtualBox and configured the base resources for the
+        domain controller. I used the Windows Server 2022 Standard Evaluation ISO and completed the installation using the
+        Desktop Experience option.
+      </p>
+      <div class="grid">
+        <figure>
+          <img src="images/server-role-installation-type.png" alt="Server Manager Add Roles and Features Wizard" />
+          <figcaption>Server Manager role-based or feature-based installation screen.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="step">
+      <h3>Step 2: Install the Windows 11 Client VM</h3>
+      <p>
+        I created a separate Windows 11 client machine in VirtualBox to simulate an end user workstation. During the setup,
+        I selected the clean installation path and used the Windows 11 setup process inside the VM.
+      </p>
+      <div class="grid">
+        <figure>
+          <img src="images/windows11-setup-option.png" alt="Windows 11 setup option screen" />
+          <figcaption>Windows 11 installation screen used to build the client machine.</figcaption>
+        </figure>
+        <figure>
+          <img src="images/windows11-desktop.png" alt="Windows 11 desktop after installation" />
+          <figcaption>Windows 11 client machine after installation completed.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="step">
+      <h3>Step 3: Bypass Windows 11 Virtual Hardware Checks</h3>
+      <p>
+        Because the lab was built in VirtualBox, I bypassed Windows 11 TPM and Secure Boot requirements by opening the
+        registry editor during setup and creating a <strong>LabConfig</strong> key under the Setup registry path.
+      </p>
+      <div class="code">HKEY_LOCAL_MACHINE\SYSTEM\Setup\LabConfig
+
+BypassTPMCheck = 1
+BypassSecureBootCheck = 1
+BypassRAMCheck = 1</div>
+      <div class="grid">
+        <figure>
+          <img src="images/windows11-regedit-bypass.png" alt="Registry Editor during Windows 11 installation" />
+          <figcaption>Registry editor used to create the LabConfig bypass values during Windows 11 installation.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="step">
+      <h3>Step 4: Promote the Server to a Domain Controller</h3>
+      <p>
+        After installing Active Directory Domain Services, I promoted the Windows Server machine to a domain controller and
+        created a new forest using the domain name <strong>lab.local</strong>. This established the foundation of the IAM lab.
+      </p>
+      <div class="note">
+        The domain used in this project was <strong>lab.local</strong> with a NetBIOS name of <strong>LAB</strong>.
+      </div>
+    </div>
+
+    <div class="step">
+      <h3>Step 5: Build the Active Directory Structure</h3>
+      <p>
+        I created organizational units and security groups to support a role-based access control model. This allowed me to
+        separate users, disabled accounts, workstations, and group assignments in a way that closely mirrors a real enterprise
+        identity environment.
+      </p>
+      <ul>
+        <li>Users</li>
+        <li>DisabledUsers</li>
+        <li>Groups</li>
+        <li>Workstations</li>
+        <li>ServiceAccounts</li>
+      </ul>
+      <p>Sample security groups created in the lab:</p>
+      <ul>
+        <li>GRP_Finance_Read</li>
+        <li>GRP_HR_Read</li>
+        <li>GRP_Trading_AppUsers</li>
+        <li>GRP_VPN_Users</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <h3>Step 6: Join the Windows 11 Client to the Domain</h3>
+      <p>
+        I configured DNS on the Windows 11 client to point to the domain controller and then joined the workstation to the
+        <strong>lab.local</strong> domain. After the reboot, I verified that the login screen displayed the domain sign-in target.
+      </p>
+      <div class="grid">
+        <figure>
+          <img src="images/domain-login-screen.png" alt="Windows 11 domain login screen" />
+          <figcaption>Windows 11 client showing sign in to the LAB domain.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="step">
+      <h3>Step 7: Create the Provisioning CSV File</h3>
+      <p>
+        To simulate an HR onboarding feed, I created a CSV file containing first name, last name, username, department, and role.
+        This file was used as the input for my provisioning script.
+      </p>
+      <div class="grid">
+        <figure>
+          <img src="images/new-users-csv.png" alt="CSV file containing new user data" />
+          <figcaption>CSV input file used to automate onboarding of new users.</figcaption>
+        </figure>
+      </div>
+      <div class="code">FirstName,LastName,Username,Department,Role
+Mike,Ross,mross,HR,Coordinator
+Havery,Spector,hspecy,Trading,Trader
+Huey,Freeman,hfreeman,Finance,Analyst</div>
+    </div>
+
+    <div class="step">
+      <h3>Step 8: Create the PowerShell Provisioning Script</h3>
+      <p>
+        I wrote a PowerShell script that imported the CSV, created new Active Directory users, applied default passwords,
+        enforced password changes at next logon, and added users to security groups based on department.
+      </p>
+      <div class="grid">
+        <figure>
+          <img src="images/provision-script-snippet.png" alt="PowerShell provisioning script snippet" />
+          <figcaption>Portion of the provisioning script showing the user creation logic.</figcaption>
+        </figure>
+      </div>
+      <div class="note">
+        I initially received a <strong>Directory object not found</strong> error because the target path in the script used an OU path that did not match the actual AD location.
+        I corrected the path and successfully reran the script.
+      </div>
+    </div>
+
+    <div class="step">
+      <h3>Step 9: Configure PowerShell Execution Policy and Run the Provisioning Script</h3>
+      <p>
+        I changed the PowerShell execution policy to allow locally created scripts to run, then launched the provisioning script
+        from my IAMLab folder.
+      </p>
+      <div class="grid">
+        <figure>
+          <img src="images/execution-policy.png" alt="PowerShell execution policy screen" />
+          <figcaption>Setting the PowerShell execution policy before running the automation script.</figcaption>
+        </figure>
+        <figure>
+          <img src="images/provision-script-success.png" alt="Successful provisioning script output" />
+          <figcaption>Provisioning script successfully creating users and adding them to groups.</figcaption>
+        </figure>
+      </div>
+      <div class="code">Set-ExecutionPolicy RemoteSigned
+cd C:\Users\Administrator\IAMLab
+.\Provision-Users.ps1</div>
+    </div>
+
+    <div class="step">
+      <h3>Step 10: Verify Group Membership and Logging Output</h3>
+      <p>
+        After the script completed, I validated group membership in Active Directory and reviewed the provisioning log file to
+        confirm successful user creation and RBAC-based group assignments.
+      </p>
+      <div class="grid">
+        <figure>
+          <img src="images/group-membership-verification.png" alt="User group membership verification" />
+          <figcaption>Verification that the provisioned account was placed in the correct AD groups.</figcaption>
+        </figure>
+        <figure>
+          <img src="images/provision-log.png" alt="Provisioning log output" />
+          <figcaption>Provisioning log showing successful user creation and group assignments.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="step">
+      <h3>Step 11: Create the Leaver CSV File</h3>
+      <p>
+        To simulate terminated users, I created a second CSV file listing usernames, ticket numbers, and business reasons for
+        deprovisioning.
+      </p>
+      <div class="grid">
+        <figure>
+          <img src="images/leavers-folder.png" alt="IAMLab folder containing leaver files" />
+          <figcaption>IAMLab directory with the leaver CSV and PowerShell script files.</figcaption>
+        </figure>
+        <figure>
+          <img src="images/leavers-csv.png" alt="Leavers CSV file" />
+          <figcaption>CSV file used to simulate offboarding requests.</figcaption>
+        </figure>
+      </div>
+      <div class="code">Username,Ticket,Reason
+mross,REQ-2001,Termination
+hspecy,REQ-2002,Voluntary resignation</div>
+    </div>
+
+    <div class="step">
+      <h3>Step 12: Create and Run the Leaver Script</h3>
+      <p>
+        I built a PowerShell deprovisioning script that removed users from access groups, disabled their accounts, updated the
+        description with ticket details, and moved the accounts into the <strong>DisabledUsers</strong> OU.
+      </p>
+      <div class="grid">
+        <figure>
+          <img src="images/leaver-script-snippet.png" alt="Leaver PowerShell script snippet" />
+          <figcaption>Section of the leaver script that removes group memberships and disables the user.</figcaption>
+        </figure>
+      </div>
+      <div class="code">cd C:\Users\Administrator\IAMLab
+.\Leaver-Users.ps1</div>
+      <div class="note">
+        The target path for disabled accounts was confirmed as <strong>OU=DisabledUsers,DC=lab,DC=local</strong>.
+      </div>
+    </div>
+
+    <div class="step">
+      <h3>Step 13: Verify Deprovisioning Results</h3>
+      <p>
+        I verified that the terminated user accounts were moved into the DisabledUsers OU, showed as disabled in Active
+        Directory, and retained only the default Domain Users membership where appropriate.
+      </p>
+      <div class="grid">
+        <figure>
+          <img src="images/disabled-users-ou.png" alt="Disabled users OU showing offboarded users" />
+          <figcaption>DisabledUsers OU showing the offboarded accounts after the leaver script ran.</figcaption>
+        </figure>
+        <figure>
+          <img src="images/disabled-user-membership.png" alt="Disabled user membership verification" />
+          <figcaption>Verification that non-default access groups were removed from the disabled account.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <h2>Key Skills Demonstrated</h2>
+    <ul>
+      <li>Active Directory installation and domain controller promotion</li>
+      <li>Windows networking and DNS troubleshooting</li>
+      <li>Domain join and authentication testing</li>
+      <li>Organizational unit design</li>
+      <li>Role-Based Access Control (RBAC)</li>
+      <li>PowerShell automation for provisioning and deprovisioning</li>
+      <li>Identity lifecycle management</li>
+      <li>Basic audit logging and verification</li>
+    </ul>
+
+    <h2>Lessons Learned</h2>
+    <p>
+      One of the biggest lessons from this project was how important exact Active Directory paths are when automating user
+      creation and deprovisioning. I also strengthened my understanding of DNS dependency during domain authentication,
+      PowerShell execution policies, and how IAM tasks can be modeled with repeatable scripts instead of fully manual actions.
+      Working through the errors in the scripts and validating the outcomes in Active Directory made this project much more
+      practical and realistic.
+    </p>
+
+    <h2>Conclusion</h2>
+    <p>
+      This lab gave me practical experience building a small IAM environment from the ground up. By the end of the project,
+      I successfully created a joiner and leaver workflow using Active Directory and PowerShell. This helped me better
+      understand how user lifecycle management works in enterprise environments and gave me a strong foundation for future IAM,
+      cybersecurity, and identity engineering projects.
+    </p>
+
+    <div class="footer">
+      <p><strong>Note:</strong> Place your screenshots in an <code>images</code> folder and rename them to match the file names used in each <code>&lt;img src&gt;</code> tag above.</p>
+    </div>
+  </div>
+</body>
+</html>
