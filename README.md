@@ -20,7 +20,7 @@ In this project you will be presented a walk through how I created an Active Dir
 </ul>
 
 <p><b>Step 1:</b> Install Active Directory Domain Services on the Windows Server virtual machine. Inside Server Manager I selected <b>Add Roles and Features</b> and chose the role-based installation option to begin preparing the server to become the domain controller.</p>
-<img src="https://imgur.com/a/2RUofjL" alt="Install Active Directory role" width="900">
+<img src="https://imgur.com/xLg8xFf" height="80%" width="80%" alt="Disk Sanitization Steps"/>
 
 <p><b>Step 2:</b> Install the Windows 11 client virtual machine. During the setup I selected the installation option for Windows 11 to begin building the client machine that would later be joined to the domain.</p>
 <img src="Screenshot 2026-03-01 122824.png" alt="Windows 11 setup option" width="900">
